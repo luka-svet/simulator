@@ -1,0 +1,1393 @@
+#:kivy 2.2.0
+
+#:include bin/ui/dynamic_classes.kv
+#:import os os
+#:import global_variables bin.global_variables
+#:import LANGUAGE bin.global_variables.LANGUAGE
+
+GridLayout:
+    cols: 3
+    language: LANGUAGE
+
+    # keeps references to dropdown and popup instances alive
+    __dropdown_and_popup_ids: [popup_warning.__self__, popup_save.__self__]
+
+    # slider/toggles to be disabled/enabled ids
+    slider_ids: [initial_density_s, initial_density_s_BF, growth_rate_s, growth_rate_s_BF, attachment_rate_s, detachment_rate_s, attachment_rate_r, detachment_rate_r, antimicrobial_inhibition_s, antimicrobial_inhibition_s_BF, mutation_rate_s, mutation_rate_s_BF, initial_density_r, initial_density_r_BF, growth_rate_r, growth_rate_r_BF, antimicrobial_inhibition_r, antimicrobial_inhibition_r_BF, lymphocyte_inhibition, density_host_death_exponent_button, density_host_death, growth_limitation_density, growth_limitation_density_exponent_button, growth_limitation_density_BF, growth_limitation_density_BF_exponent_button, natural_death, initial_density_n, proliferation_rate, half_maximum_growth, effector_cells_decay, memory_cells_conversion, default_values_button, sensitive_microbes_initial_density_exponent_button, sensitive_microbes_initial_density_BF_exponent_button, sensitive_microbes_mutation_rate_exponent_button, sensitive_microbes_mutation_rate_BF_exponent_button, immune_system_initial_density_exponent_button]
+    toggle_id: treatment_toggles
+
+    # background color
+    canvas:
+        Color:
+            rgb: 0.157, 0.157, 0.157
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    ###############
+    # Popup Warning
+    ###############
+
+    PopupWarning:
+        id: popup_warning
+        size_hint: .35, .25
+        auto_dismiss: False
+        on_parent: if self.parent == root: self.parent.remove_widget(self)
+		
+		separator_color: 0.996, 0.333, 0.086, 1
+        
+		title: ""
+        warning_text: ""
+
+        BoxLayout:
+            orientation: "vertical"
+            Label:
+                text_size: self.parent.width, None
+                size: self.texture_size
+                font_size: dp(13)
+
+                text: popup_warning.warning_text
+            Button:
+                text: "OK"
+                on_release: popup_warning.dismiss()
+
+    ###################
+    # Popup Save Dialog
+    ###################
+
+    Popup:
+        id: popup_save
+        size_hint: .70, .65
+        auto_dismiss: False
+        on_parent: if self.parent == root: self.parent.remove_widget(self)
+		separator_color: 0.996, 0.333, 0.086, 1
+		
+        title: root.language["popup_save_dialog_title"]
+				
+        BoxLayout:
+            orientation: "vertical"
+
+            FileChooserIconView:
+                id: file_chooser
+                path: os.getcwd()
+                filters: [lambda x,y: os.path.isdir(os.path.join(x, y))]
+                dirselect: True
+                on_selection: save_text_input.text = self.selection and self.selection[0] or save_text_input.text
+
+            TextInput:
+                id: save_text_input
+                size_hint_y: None
+                height: dp(30)
+
+                readonly: True
+                multiline: False
+                background_color: 0.257, 0.257, 0.257, 0.5
+                cursor_color: 1, 1, 1, 1
+                foreground_color: 1, 1, 1, 1
+                text: file_chooser.path
+
+            BoxLayout:
+                padding: dp(2)
+                size_hint_y: None
+                height: dp(29)
+
+                Widget
+				
+                Button:
+                    size_hint_x: None
+                    width: dp(120)
+                    text: root.language["save_menu"]
+                    on_release: app.save(graphs_box, save_text_input.text, popup_warning, (root.language["popup_saving_title"], root.language["popup_saving_message"])), popup_save.dismiss()
+
+                Button:
+                    size_hint_x: None
+                    width: dp(120)
+                    text: root.language["popup_save_dialog_cancel"]
+                    on_release: popup_save.dismiss()
+
+    ################
+    # Options Layout
+    ################
+
+    BoxLayout:
+        size_hint_x: None
+        width: dp(280)  # fixed options panel width
+
+        # options background color
+        canvas:
+            Color:
+                rgb: 0.25, 0.25, 0.25
+            Rectangle:
+                pos: self.pos
+                size: dp(280), self.size[1]
+
+        ScreenManager:
+            id: options_screen_manager
+
+            ####################
+            # Scenario Options
+            ####################
+
+            Screen:
+                name: "scenario_options"
+				on_parent: graphs_layout.button_states(start_button, pause_button, restart_button, "scenario", "", app), graphs_layout.scenario_graph("scenario", "")
+				
+                ScrollView:
+                    scroll_distance: dp(10)
+                    scroll_timeout: 200
+                    size: self.parent.width, root.height
+					scroll_type: ['bars', 'content']
+					bar_width: dp(3)
+					
+                    OptionsLayout:
+                        id: scenario_options_layout
+                        height: dp(1685)
+
+                        ###################################
+                        # Save and Default buttons
+                        ###################################
+
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: dp(56)
+
+                            BoxLayout:
+
+                                # Save menu
+                                Button:
+                                    id: scenario_save_menu
+                                    text: root.language["save_menu"]
+                                    on_release: popup_save.open()
+									
+								DefaultValuesButton:
+									id: default_values_button
+									text: root.language["default_values_button"]
+									on_release: self.default_values(app)
+
+                        #######################################
+                        # Sensitive Microbes (Planktonic) Options
+                        #######################################
+
+                        Label:
+                            id: antimicrobial_sensitive_microbes_label
+                            size_hint_y: None
+                            height: dp(20)
+                            text_size: self.size
+                            halign: 'left'
+                            markup: True
+                            text: "[b]" + root.language["antimicrobial_sensitive_microbes_label"] + "[/b]"
+
+                        Widget:
+                            id: sensitive_microbes_line
+                            size_hint_y: None
+                            height: dp(4)
+                            canvas:
+                                Color:
+                                    rgb: global_variables.MICROBES_ASSORTMENT.get_microbes()["Sensitive"].get_line_color()
+                                Rectangle:
+                                    pos: dp(5), sensitive_microbes_line.center_y
+                                    size: sensitive_microbes_line.width, dp(3)
+
+                        # Initial density
+                        BoxLayout:
+						    id: initial_density_box
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: antimicrobial_sensitive_microbes_initial_density
+                                text: root.language["microbes_initial_density"]
+
+                            OptionText:
+                                id: antimicrobial_sensitive_microbes_initial_density_value
+                                halign: "right"
+                                text: str(round(initial_density_s.value, 1)) if initial_density_s.value % 1 != 0 else str(int(initial_density_s.value))
+                            
+							# Exponent selection density
+                            ExponentButton:
+                                id: sensitive_microbes_initial_density_exponent_button
+                                text: app.default_parameters["sensitive_initial_density_exponent"]
+                                on_text: app.sensitive_initial_density_exponent = 10**int(args[1][-2:])
+                                values: [' e02', ' e01', ' e00']
+
+                            OptionText:
+                                id: sensitive_microbes_initial_density_exponent_unit
+                                size_hint_x: None
+                                width: dp(43)
+								halign: "right"
+                                text: root.language["microbes_unit_value"]
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: initial_density_s
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 0
+								max: 100
+                                value: app.default_parameters["sensitive_initial_density_value"]
+                                step: 1
+                                on_value: app.sensitive_initial_density_value = self.value
+
+                        # Growth rate
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: antimicrobial_sensitive_microbes_growth_rate
+                                size_hint_x: None
+                                width: dp(150)
+                                text: root.language["microbes_growth_rate"]
+
+                            OptionText:
+                                id: antimicrobial_sensitive_microbes_growth_rate_value
+                                halign: "right"
+                                text: str(round(growth_rate_s.value, 1))+ root.language["microbes_growth_rate_value"] if growth_rate_s.value % 1 != 0 else str(int(growth_rate_s.value)) + root.language["microbes_growth_rate_value"]
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: growth_rate_s
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 0.1
+                                max: 10
+                                value: app.default_parameters["sensitive_growth_rate"]
+                                step: 0.1
+                                on_value: app.sensitive_growth_rate = round(self.value, 1) if self.value % 1 != 0 else int(self.value)
+
+                        # Attachment rate
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: antimicrobial_sensitive_microbes_attachment_rate
+                                size_hint_x: None
+                                width: dp(150)
+                                text: root.language["microbes_attachment_rate"]
+
+                            OptionText:
+                                id: antimicrobial_sensitive_microbes_attachment_rate_value
+                                halign: "right"
+                                text: str(round(attachment_rate_s.value, 3)) + root.language["microbes_a/detachment_rate_value"] if attachment_rate_s.value % 1 != 0 else str(int(attachment_rate_s.value)) + root.language["microbes_a/detachment_rate_value"]
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: attachment_rate_s
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 0
+                                max: 0.1
+                                value: app.default_parameters["sensitive_attachment_rate"]
+                                step: 0.001
+                                on_value: app.sensitive_attachment_rate = round(self.value, 3) if self.value % 1 != 0 else int(self.value)
+
+                        # Antimicrobial Inhibition
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: antimicrobial_sensitive_microbes_antimicrobial_inhibition
+                                size_hint_x: None
+                                width: dp(150)
+                                text: root.language["microbes_antimicrobial_inhibition"]
+
+                            OptionText:
+                                halign: "right"
+                                text: str(round(antimicrobial_inhibition_s.value, 2)) + root.language["microbes_antimicrobial_inhibition_value"] if antimicrobial_inhibition_s.value % 1 != 0 else str(int(antimicrobial_inhibition_s.value)) + root.language["microbes_antimicrobial_inhibition_value"]
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: antimicrobial_inhibition_s
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 0
+                                max: 1
+                                value: app.default_parameters["sensitive_antimicrobial_inhibition"]
+                                step: 0.01
+                                on_value: app.sensitive_antimicrobial_inhibition = round(self.value, 2) if self.value % 1 != 0 else int(self.value)
+                      
+					    # Mutation rate
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: sensitive_microbes_mutation_rate
+                                size_hint_x: None
+                                width: dp(150)
+                                text: root.language["microbes_mutation_rate"]
+
+                            OptionText:
+                                halign: "right"
+                                text: str(round(mutation_rate_s.value, 3)) if mutation_rate_s.value % 1 != 0 else str(int(mutation_rate_s.value))
+							
+							# Exponent selection density
+                            ExponentButton:
+                                id: sensitive_microbes_mutation_rate_exponent_button
+                                text: app.default_parameters["sensitive_mutation_rate_exponent"]
+                                on_text: app.sensitive_mutation_rate_exponent = 10**int(args[1][-2:])
+                                values: [' e02', ' e01', ' e00']
+
+                            OptionText:
+                                id: sensitive_microbes_mutation_rate_exponent
+                                size_hint_x: None
+                                width: dp(36)
+								halign: "right"
+                                text: root.language["microbes_mutation_rate_value"]
+                        
+						BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: mutation_rate_s
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 0
+                                max: 0.1
+                                value: app.default_parameters["sensitive_mutation_rate_value"]
+                                step: 0.001
+                                on_value: app.sensitive_mutation_rate_value = round(self.value, 3) if self.value % 1 != 0 else int(self.value)
+                     
+                        #######################################
+                        # Sensitive Microbes (Biofilm) Options
+                        #######################################
+
+                        Label:
+                            id: antimicrobial_sensitive_microbes_label_BF
+                            size_hint_y: None
+                            height: dp(20)
+                            text_size: self.size
+                            halign: 'left'
+                            markup: True
+                            text: "[b]" + root.language["antimicrobial_sensitive_microbes_label_BF"] + "[/b]"
+
+                        Widget:
+                            id: sensitive_microbes_line_BF
+                            size_hint_y: None
+                            height: dp(4)
+                            canvas:
+                                Color:
+                                    rgb: global_variables.MICROBES_ASSORTMENT.get_microbes()["SensitiveBF"].get_line_color()
+                                Rectangle:
+                                    pos: dp(5), sensitive_microbes_line_BF.center_y
+                                    size: sensitive_microbes_line_BF.width, dp(3)
+
+                        # Initial density
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: antimicrobial_sensitive_microbes_initial_density_BF
+                                text: root.language["microbes_initial_density"]
+
+                            OptionText:
+                                id: antimicrobial_sensitive_microbes_initial_density_BF_value
+                                halign: "right"
+                                text: str(round(initial_density_s_BF.value, 1)) if initial_density_s_BF.value % 1 != 0 else str(int(initial_density_s_BF.value))
+                            
+							# Exponent selection density
+                            ExponentButton:
+                                id: sensitive_microbes_initial_density_BF_exponent_button
+                                text: app.default_parameters["sensitive_initial_density_BF_exponent"]
+                                on_text: app.sensitive_initial_density_BF_exponent = 10**int(args[1][-2:])
+                                values: [' e02', ' e01', ' e00']
+
+                            OptionText:
+                                id: sensitive_microbes_initial_density_exponent_unit
+                                size_hint_x: None
+                                width: dp(43)
+								halign: "right"
+                                text: root.language["microbes_unit_value"]
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: initial_density_s_BF
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 0
+								max: 100
+                                value: app.default_parameters["sensitive_initial_density_BF_value"]
+                                step: 1
+                                on_value: app.sensitive_initial_density_BF_value = self.value
+
+                        # Growth rate
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: antimicrobial_sensitive_microbes_growth_rate
+                                size_hint_x: None
+                                width: dp(150)
+                                text: root.language["microbes_growth_rate"]
+
+                            OptionText:
+                                id: antimicrobial_sensitive_microbes_growth_rate_BF_value
+                                halign: "right"
+                                text: str(round(growth_rate_s_BF.value, 1)) + root.language["microbes_growth_rate_value"] if growth_rate_s_BF.value % 1 != 0 else str(int(growth_rate_s_BF.value)) + root.language["microbes_growth_rate_value"]
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: growth_rate_s_BF
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 0.1
+                                max: 10
+                                value: app.default_parameters["sensitive_growth_rate_BF"]
+                                step: 0.1
+                                on_value: app.sensitive_growth_rate_BF = round(self.value, 1) if self.value % 1 != 0 else int(self.value)
+
+                        # Detachment rate
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: antimicrobial_sensitive_microbes_detachment_rate
+                                size_hint_x: None
+                                width: dp(150)
+                                text: root.language["microbes_detachment_rate"]
+
+                            OptionText:
+                                id: antimicrobial_sensitive_microbes_detachment_rate_value
+                                halign: "right"
+                                text: str(round(detachment_rate_s.value, 4)) + root.language["microbes_a/detachment_rate_value"] if detachment_rate_s.value % 1 != 0 else str(int(detachment_rate_s.value)) + root.language["microbes_a/detachment_rate_value"]
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: detachment_rate_s
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 0
+                                max: 0.01
+                                value: app.default_parameters["sensitive_detachment_rate"]
+                                step: 0.0001
+                                on_value: app.sensitive_detachment_rate = round(self.value, 4) if self.value % 1 != 0 else int(self.value)
+
+                        # Antimicrobial Inhibition
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: antimicrobial_sensitive_microbes_antimicrobial_inhibition
+                                size_hint_x: None
+                                width: dp(150)
+                                text: root.language["microbes_antimicrobial_inhibition"]
+
+                            OptionText:
+                                halign: "right"
+                                text: str(round(antimicrobial_inhibition_s_BF.value, 2)) + root.language["microbes_antimicrobial_inhibition_value"] if antimicrobial_inhibition_s_BF.value % 1 != 0 else str(int(antimicrobial_inhibition_s_BF.value)) + root.language["microbes_antimicrobial_inhibition_value"]
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: antimicrobial_inhibition_s_BF
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 0
+                                max: 1
+                                value: app.default_parameters["sensitive_antimicrobial_inhibition_BF"]
+                                step: 0.01
+                                on_value: app.sensitive_antimicrobial_inhibition_BF = round(self.value, 2) if self.value % 1 != 0 else int(self.value)
+                      
+					    # Mutation rate
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: sensitive_microbes_mutation_rate
+                                size_hint_x: None
+                                width: dp(150)
+                                text: root.language["microbes_mutation_rate"]
+
+                            OptionText:
+                                halign: "right"
+                                text: str(round(mutation_rate_s_BF.value, 3)) if mutation_rate_s_BF.value % 1 != 0 else str(int(mutation_rate_s_BF.value))
+							
+							# Exponent selection density
+                            ExponentButton:
+                                id: sensitive_microbes_mutation_rate_BF_exponent_button
+                                text: app.default_parameters["sensitive_mutation_rate_BF_exponent"]
+                                on_text: app.sensitive_mutation_rate_BF_exponent_BF = 10**int(args[1][-2:])
+                                values: [' e02', ' e01', ' e00']
+
+                            OptionText:
+                                id: sensitive_microbes_mutation_rate_BF_exponent
+                                size_hint_x: None
+                                width: dp(36)
+								halign: "right"
+                                text: root.language["microbes_mutation_rate_value"]
+                        
+						BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: mutation_rate_s_BF
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 0
+                                max: 0.1
+                                value: app.default_parameters["sensitive_mutation_rate_BF_value"]
+                                step: 0.001
+                                on_value: app.sensitive_mutation_rate_BF_value = round(self.value, 3) if self.value % 1 != 0 else int(self.value)							
+                        
+						#######################################
+                        # Resistant Microbes (Planktonic) Options
+                        #######################################
+
+                        Label:
+                            id: antimicrobial_resistant_microbes_label
+                            size_hint_y: None
+                            height: dp(20)
+                            text_size: self.size
+                            halign: 'left'
+                            markup: True
+                            text: "[b]" + root.language["antimicrobial_resistant_microbes_label"] + "[/b]"
+
+                        Widget:
+                            id: resistant_microbes_line
+                            size_hint_y: None
+                            height: dp(4)
+                            canvas:
+                                Color:
+                                    rgb: global_variables.MICROBES_ASSORTMENT.get_microbes()["Resistant"].get_line_color()
+                                Rectangle:
+                                    pos: dp(5), resistant_microbes_line.center_y
+                                    size: resistant_microbes_line.width, dp(3)
+
+                        # Initial density
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: antimicrobial_resistant_microbes_initial_density
+                                text: root.language["microbes_initial_density"]
+
+                            OptionText:
+                                id: antimicrobial_resistant_microbes_initial_density_value
+                                halign: "right"
+                                text: str(round(initial_density_r.value, 1)) + root.language["microbes_initial_density_value"] if initial_density_r.value % 1 != 0 else str(int(initial_density_r.value)) + root.language["microbes_initial_density_value"]
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: initial_density_r
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 0
+								max: 100
+                                value: app.default_parameters["resistant_initial_density"]
+                                step: 1
+                                on_value: app.resistant_initial_density = self.value
+
+                        # Growth rate
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: antimicrobial_resistant_microbes_growth_rate
+                                size_hint_x: None
+                                width: dp(150)
+                                text: root.language["microbes_growth_rate"]
+
+                            OptionText:
+                                id: antimicrobial_resistant_microbes_growth_rate_value
+                                halign: "right"
+                                text: str(round(growth_rate_r.value, 2)) + root.language["microbes_growth_rate_value"] if growth_rate_r.value % 1 != 0 else str(int(growth_rate_r.value)) + root.language["microbes_growth_rate_value"]
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: growth_rate_r
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 0.1
+                                max: growth_rate_s.value
+                                value: growth_rate_s.min - growth_rate_s.min + app.default_parameters["resistant_growth_rate"]  # for some reason I can't set a value here if I don't use growth_rate_s.min...
+                                step: 0.1
+                                on_value: app.resistant_growth_rate = round(self.value, 1) if self.value % 1 != 0 else int(self.value)
+
+                        # Attachment rate
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: antimicrobial_resistant_microbes_attachment_rate
+                                size_hint_x: None
+                                width: dp(150)
+                                text: root.language["microbes_attachment_rate"]
+
+                            OptionText:
+                                id: antimicrobial_resistant_microbes_attachment_rate_value
+                                halign: "right"
+                                text: str(round(attachment_rate_r.value, 3)) + root.language["microbes_a/detachment_rate_value"] if attachment_rate_r.value % 1 != 0 else str(int(attachment_rate_r.value)) + root.language["microbes_a/detachment_rate_value"]
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: attachment_rate_r
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 0
+                                max: 0.1
+                                value: app.default_parameters["resistant_attachment_rate"]
+                                step: 0.001
+                                on_value: app.resistant_attachment_rate = round(self.value, 3) if self.value % 1 != 0 else int(self.value)
+
+                        # Antimicrobial Inhibition
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: antimicrobial_resistant_microbes_antimicrobial_inhibition
+                                size_hint_x: None
+                                width: dp(150)
+                                text: root.language["microbes_antimicrobial_inhibition"]
+
+                            OptionText:
+                                halign: "right"
+                                text: str(round(antimicrobial_inhibition_r.value, 2)) + root.language["microbes_antimicrobial_inhibition_value"] if antimicrobial_inhibition_r.value % 1 != 0 else str(int(antimicrobial_inhibition_r.value)) + root.language["microbes_antimicrobial_inhibition_value"]
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: antimicrobial_inhibition_r
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 0
+                                max: antimicrobial_inhibition_s.value
+                                value: app.default_parameters["resistant_antimicrobial_inhibition"]
+                                step: 0.01
+                                on_value: app.resistant_antimicrobial_inhibition = round(self.value, 2) if self.value % 1 != 0 else int(self.value)
+
+						#######################################
+                        # Resistant Microbes (Biofilm) Options
+                        #######################################
+
+                        Label:
+                            id: antimicrobial_resistant_microbes_label
+                            size_hint_y: None
+                            height: dp(20)
+                            text_size: self.size
+                            halign: 'left'
+                            markup: True
+                            text: "[b]" + root.language["antimicrobial_resistant_microbes_label_BF"] + "[/b]"
+
+                        Widget:
+                            id: resistant_microbes_line
+                            size_hint_y: None
+                            height: dp(4)
+                            canvas:
+                                Color:
+                                    rgb: global_variables.MICROBES_ASSORTMENT.get_microbes()["ResistantBF"].get_line_color()
+                                Rectangle:
+                                    pos: dp(5), resistant_microbes_line.center_y
+                                    size: resistant_microbes_line.width, dp(3)
+
+                        # Initial density
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: antimicrobial_resistant_microbes_initial_density
+                                text: root.language["microbes_initial_density"]
+
+                            OptionText:
+                                id: antimicrobial_resistant_microbes_initial_density_BF_value
+                                halign: "right"
+                                text: str(round(initial_density_r_BF.value, 1)) + root.language["microbes_initial_density_value"] if initial_density_r_BF.value % 1 != 0 else str(int(initial_density_r_BF.value)) + root.language["microbes_initial_density_value"]
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: initial_density_r_BF
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 0
+								max: 100
+                                value: app.default_parameters["resistant_initial_density_BF"]
+                                step: 1
+                                on_value: app.resistant_initial_density_BF = self.value
+
+                        # Growth rate
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: antimicrobial_resistant_microbes_growth_rate
+                                size_hint_x: None
+                                width: dp(150)
+                                text: root.language["microbes_growth_rate"]
+
+                            OptionText:
+                                id: antimicrobial_resistant_microbes_growth_rate_BF_value
+                                halign: "right"
+                                text: str(round(growth_rate_r_BF.value, 2)) + root.language["microbes_growth_rate_value"] if growth_rate_r_BF.value % 1 != 0 else str(int(growth_rate_r_BF.value)) + root.language["microbes_growth_rate_value"]
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: growth_rate_r_BF
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 0.1
+                                max: growth_rate_s_BF.value
+                                value: growth_rate_s_BF.min - growth_rate_s_BF.min + app.default_parameters["resistant_growth_rate_BF"]  # for some reason I can't set a value here if I don't use growth_rate_s.min...
+                                step: 0.1
+                                on_value: app.resistant_growth_rate_BF = round(self.value, 1) if self.value % 1 != 0 else int(self.value)
+
+                        # Detachment rate
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: antimicrobial_resistant_microbes_detachment_rate
+                                size_hint_x: None
+                                width: dp(150)
+                                text: root.language["microbes_detachment_rate"]
+
+                            OptionText:
+                                id: antimicrobial_resistant_microbes_detachment_rate_value
+                                halign: "right"
+                                text: str(round(detachment_rate_r.value, 4)) + root.language["microbes_a/detachment_rate_value"] if detachment_rate_r.value % 1 != 0 else str(int(detachment_rate_r.value)) + root.language["microbes_a/detachment_rate_value"]
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: detachment_rate_r
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 0
+                                max: 0.01
+                                value: app.default_parameters["resistant_detachment_rate"]
+                                step: 0.0001
+                                on_value: app.resistant_detachment_rate = round(self.value, 4) if self.value % 1 != 0 else int(self.value)
+
+                        # Antimicrobial Inhibition
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: antimicrobial_resistant_microbes_antimicrobial_inhibition
+                                size_hint_x: None
+                                width: dp(150)
+                                text: root.language["microbes_antimicrobial_inhibition"]
+
+                            OptionText:
+                                halign: "right"
+                                text: str(round(antimicrobial_inhibition_r_BF.value, 2)) + root.language["microbes_antimicrobial_inhibition_value"] if antimicrobial_inhibition_r_BF.value % 1 != 0 else str(int(antimicrobial_inhibition_r_BF.value)) + root.language["microbes_antimicrobial_inhibition_value"]
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: antimicrobial_inhibition_r_BF
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 0
+                                max: antimicrobial_inhibition_s_BF.value
+                                value: app.default_parameters["resistant_antimicrobial_inhibition_BF"]
+                                step: 0.01
+                                on_value: app.resistant_antimicrobial_inhibition_BF = round(self.value, 2) if self.value % 1 != 0 else int(self.value)
+
+                        #########################
+                        # All Microbes Options
+                        #########################
+
+                        Label:
+                            id: all_microbes_label
+                            size_hint_y: None
+                            height: dp(20)
+                            text_size: self.size
+                            halign: 'left'
+                            markup: True
+                            text: "[b]" + root.language["all_microbes_label"] + "[/b]"
+
+                        Widget:
+                            id: all_microbes_line
+                            size_hint_y: None
+                            height: dp(4)
+                            canvas:
+                                Color:
+                                    rgb: global_variables.MICROBES_ASSORTMENT.get_microbes()["Total"].get_line_color()
+                                Rectangle:
+                                    pos: dp(5), all_microbes_line.center_y
+                                    size: all_microbes_line.width, dp(3)
+
+                        # Lymphocyte Inhibition
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: all_microbes_lymphocyte_inhibition
+                                text: root.language["all_microbes_lymphocyte_inhibition"]
+
+                            OptionText:
+                                id: all_microbes_lymphocyte_inhibition_value
+                                size_hint_x: None
+                                width: dp(110)
+                                halign: "right"
+                                text: ('%.1e' % lymphocyte_inhibition.value) + root.language["all_microbes_lymphocyte_inhibition_value"]
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: lymphocyte_inhibition
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 0.00001
+                                max: 0.0001
+                                value: app.default_parameters["lymphocyte_inhibition"]
+                                step: 0.000001
+                                on_value: app.lymphocyte_inhibition = round(self.value, 6) if self.value % 1 != 0 else int(self.value)
+
+                        # Density causing death to host
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: all_microbes_density_death
+                                text: root.language["all_microbes_density_death"]
+
+                            OptionText:
+                                size_hint_x: None
+                                width: dp(30)
+                                halign: "right"
+                                text: str(round(density_host_death.value, 2)) if density_host_death.value % 1 != 0 else str(int(density_host_death.value))
+
+                            # Exponent selection
+                            ExponentButton:
+                                id: density_host_death_exponent_button
+                                text: app.default_parameters["host_death_density_exponent"]
+                                on_text: app.host_death_density_exponent = 10**int(args[1][-2:])
+                                values: [' e10', ' e09', ' e08', ' e07', ' e06', ' e05', ' e04', ' e03']
+
+                            OptionText:
+                                id: all_microbes_density_death_value
+                                size_hint_x: None
+                                width: dp(43)
+                                halign: "right"
+                                text: root.language["all_microbes_density_death_value"]
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: density_host_death
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 1
+                                max: 10
+                                value: app.default_parameters["host_death_density_value"]
+                                step: 0.1
+                                on_value: app.host_death_density_value = round(self.value, 1) if self.value % 1 != 0 else int(self.value)
+
+                        # Growth limitation
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: growth_limitation_density
+                                text: root.language["growth_limitation_density"]
+
+                            OptionText:
+                                size_hint_x: None
+                                width: dp(30)
+                                halign: "right"
+                                text: str(round(growth_limitation_density.value, 2)) if growth_limitation_density.value % 1 != 0 else str(int(growth_limitation_density.value))
+
+                            # Exponent selection
+                            ExponentButton:
+                                id: growth_limitation_density_exponent_button
+                                text: app.default_parameters["growth_limitation_density_exponent"]
+                                on_text: app.growth_limitation_density_exponent = 10**int(args[1][-2:])
+                                values: [' e10', ' e09', ' e08', ' e07', ' e06', ' e05', ' e04', ' e03']
+
+                            OptionText:
+                                id: growth_limitation_density_value
+                                size_hint_x: None
+                                width: dp(43)
+                                halign: "right"
+                                text: root.language["growth_limitation_density_value"]
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: growth_limitation_density
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 1
+                                max: 10
+                                value: app.default_parameters["growth_limitation_density_value"]
+                                step: 0.1
+                                on_value: app.growth_limitation_density_value = round(self.value, 1) if self.value % 1 != 0 else int(self.value)
+
+                        # Growth limitation BF
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: growth_limitation_density_BF
+                                text: root.language["growth_limitation_density_BF"]
+
+                            OptionText:
+                                size_hint_x: None
+                                width: dp(30)
+                                halign: "right"
+                                text: str(round(growth_limitation_density_BF.value, 2)) if growth_limitation_density_BF.value % 1 != 0 else str(int(growth_limitation_density_BF.value))
+
+                            # Exponent selection
+                            ExponentButton:
+                                id: growth_limitation_density_BF_exponent_button
+                                text: app.default_parameters["growth_limitation_density_BF_exponent"]
+                                on_text: app.growth_limitation_density_BF_exponent = 10**int(args[1][-2:])
+                                values: [' e10', ' e09', ' e08', ' e07', ' e06', ' e05', ' e04', ' e03']
+
+                            OptionText:
+                                id: growth_limitation_density_BF_value
+                                size_hint_x: None
+                                width: dp(43)
+                                halign: "right"
+                                text: root.language["growth_limitation_density_value"]
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: growth_limitation_density_BF
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 1
+                                max: 10
+                                value: app.default_parameters["growth_limitation_density_BF_value"]
+                                step: 0.1
+                                on_value: app.growth_limitation_density_BF_value = round(self.value, 1) if self.value % 1 != 0 else int(self.value)
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: all_microbes_natural_death
+                                text: root.language["all_microbes_natural_death"]
+
+                            OptionText:
+                                id: all_microbes_natural_death_value
+                                size_hint_x: None
+                                width: dp(110)
+                                halign: "right"
+                                text: str(round(natural_death.value, 2)) + root.language["all_microbes_natural_death_value"]  if natural_death.value % 1 != 0 else str(int(natural_death.value)) + root.language["all_microbes_natural_death_value"]
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: natural_death
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 0
+                                max: 1
+                                value: app.default_parameters["natural_death"]
+                                step: 0.01
+                                on_value: app.natural_death = round(self.value, 2) if self.value % 1 != 0 else int(self.value)
+
+                        ###############################
+                        # Immune System Options
+                        ###############################
+
+                        Label:
+                            id: immune_system_label
+                            size_hint_y: None
+                            height: dp(20)
+                            text_size: self.size
+                            halign: 'left'
+                            markup: True
+                            text: "[b]" + root.language["immune_system_label"] + "[/b]"
+
+                        Widget:
+                            id: immune_precursor_cell_line
+                            size_hint_y: None
+                            height: dp(4)
+                            canvas:
+                                Color:
+                                    rgb: global_variables.immune_system_color
+                                Rectangle:
+                                    pos: dp(5), immune_precursor_cell_line.center_y
+                                    size: immune_precursor_cell_line.width, dp(3)
+
+                        # Initial density
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: immune_system_initial_density
+                                text: root.language["immune_system_initial_density"]
+
+                            OptionText:
+                                id: immune_system_initial_density_value
+                                size_hint_x: None
+                                width: dp(40)
+                                halign: "right"
+                                text: str(round(initial_density_n.value, 1)) if initial_density_n.value % 1 != 0 else str(int(initial_density_n.value))
+
+							# Exponent selection density
+                            ExponentButton:
+                                id: immune_system_initial_density_exponent_button
+                                text: app.default_parameters["initial_precursor_cell_density_exponent"]
+                                on_text: app.initial_precursor_cell_density_exponent = 10**int(args[1][-2:])
+                                values: [' e03', ' e02', ' e01', ' e00']
+
+                            OptionText:
+                                id: immune_system_initial_density_exponent_unit
+                                size_hint_x: None
+                                width: dp(43)
+								halign: "right"
+                                text: root.language["microbes_unit_value"]
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: initial_density_n
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 0
+                                max: 10
+                                value: app.default_parameters["initial_precursor_cell_density_value"]
+                                step: 0.1
+                                on_value: app.initial_precursor_cell_density_value = round(self.value, 1) if self.value % 1 != 0 else int(self.value)
+
+                        # Proliferation rate
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: immune_system_proliferation_rate
+                                size_hint_x: None
+                                width: dp(150)
+                                text: root.language["immune_system_proliferation_rate"]
+
+                            OptionText:
+                                id: immune_system_proliferation_rate_value
+                                halign: "right"
+                                text: str(round(proliferation_rate.value, 1)) + root.language["microbes_growth_rate_value"] if proliferation_rate.value % 1 != 0 else str(int(proliferation_rate.value)) + root.language["microbes_growth_rate_value"]
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: proliferation_rate
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 1.2
+                                max: 3
+                                value: app.default_parameters["immune_cell_proliferation_rate"]
+                                step: 0.1
+                                on_value: app.immune_cell_proliferation_rate = round(self.value, 1) if self.value % 1 != 0 else int(self.value)
+
+                        # Half maximum growth
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: immune_system_half_maximum_growth
+                                text: root.language["immune_system_half_maximum_growth"]
+
+                            OptionText:
+                                id: immune_system_half_maximum_growth_value
+                                size_hint_x: None
+                                width: dp(80)
+                                halign: "right"
+                                text: ('%.1e' % half_maximum_growth.value).replace("+", "") + root.language["microbes_initial_density_value"]
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: half_maximum_growth
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 10000
+                                max: 100000
+                                value: app.default_parameters["immune_cell_half_maximum_growth"]
+                                step: 1000
+                                on_value: app.immune_cell_half_maximum_growth = self.value
+
+                        # Effector Cells Decay rate
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: immune_system_effector_decay_rate
+                                text: root.language["immune_system_effector_decay_rate"]
+
+                            OptionText:
+                                id: immune_system_effector_decay_rate_value
+                                size_hint_x: None
+                                width: dp(80)
+                                halign: "right"
+                                text: str(round(effector_cells_decay.value, 2)) + root.language["microbes_growth_rate_value"] if effector_cells_decay.value % 1 != 0 else str(int(effector_cells_decay.value)) + root.language["microbes_growth_rate_value"]
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: effector_cells_decay
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 0.1
+                                max: 0.8
+                                value: app.default_parameters["effector_decay_rate"]
+                                step: 0.01
+                                on_value: app.effector_decay_rate = round(self.value, 2) if self.value % 1 != 0 else int(self.value)
+
+                        # Memory Cells conversion
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: immune_system_memory_conversion
+                                size_hint_x: None
+                                width: dp(180)
+                                text: root.language["immune_system_memory_conversion"]
+
+                            OptionText:
+                                id: immune_system_memory_conversion_value
+                                halign: "right"
+                                text: str(round(memory_cells_conversion.value, 3)) if memory_cells_conversion.value % 1 != 0 else str(int(memory_cells_conversion.value))
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: memory_cells_conversion
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 0.05
+                                max: 0.1
+                                value: app.default_parameters["memory_cell_conversion_rate"]
+                                step: 0.001
+                                on_value: app.memory_cell_conversion_rate = round(self.value, 3) if self.value % 1 != 0 else int(self.value)
+
+                        ###############################
+                        # Antimicrobial Options
+                        ###############################
+
+                        Label:
+                            id: antimicrobial_label
+                            size_hint_y: None
+                            height: dp(20)
+                            text_size: self.size
+                            halign: 'left'
+                            markup: True
+                            text: "[b]" + root.language["antimicrobial_label"] + "[/b]"
+
+                        Widget:
+                            id: antimicrobial_line
+                            size_hint_y: None
+                            height: dp(4)
+                            canvas:
+                                Color:
+                                    rgb: global_variables.ANTIMICROBIAL_ASSORTMENT.get_antimicrobials()["Generic Antimicrobial"].get_line_color()
+                                Rectangle:
+                                    pos: dp(5), antimicrobial_line.center_y
+                                    size: antimicrobial_line.width, dp(3)
+
+                        # Mean Concentration
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: antimicrobial_mean_concentration
+                                text: root.language["antimicrobial_mean_concentration"]
+
+                            OptionText:
+                                id: antimicrobial_mean_concentration_value
+                                size_hint_x: None
+                                width: dp(80)
+                                halign: "right"
+                                text: str(round(mean_concentration.value, 1)) if mean_concentration.value % 1 != 0 else str(int(mean_concentration.value))
+							
+							# Exponent selection density
+                            ExponentButton:
+                                id: antimicrobial_mean_concentration_exponent_button
+                                text: app.default_parameters["antimicrobial_mean_concentration_exponent"]
+                                on_text: app.antimicrobial_mean_concentration_exponent = 10**int(args[1][-2:])
+                                values: [' e02', ' e01', ' e00']
+
+                            OptionText:
+                                id: antimicrobial_mean_concentration_exponent
+                                size_hint_x: None
+                                width: dp(34)
+								halign: "right"
+                                text: root.language["antimicrobial_mean_concentration_value"]
+                        
+						BoxLayout:
+                            size_hint_y: None
+                            height: dp(25)
+
+                            SmallerSlider:
+                                id: mean_concentration
+								size_hint_x: initial_density_box.size[0] * 0.8
+                                min: 0
+                                max: 10
+                                value: app.default_parameters["antimicrobial_mean_concentration_value"]
+                                step: 0.1
+                                on_value: app.antimicrobial_mean_concentration_value = round(self.value, 1) if self.value % 1 != 0 else int(self.value)
+
+                        # Treatment Type
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(20)
+
+                            OptionText:
+                                id: antimicrobial_treatment_type
+                                text: root.language["antimicrobial_treatment_type"]
+
+                        Widget:
+                            size_hint_y: None
+                            height: dp(4)
+
+                        TreatmentType:
+                            id: treatment_toggles
+                            language: root.language
+                            cleared_widgets: None						                
+
+    ###############
+    # Graphs Layout
+    ###############
+
+    GraphsLayout:
+        id: graphs_layout
+        orientation: 'vertical'
+        padding: dp(5)
+
+        microbes_graph: microbes_graph_id
+        antimicrobial_graph: antimicrobial_graph_id
+
+        graph_labels: {"x_axis": root.language["graph_x_axis"], "microbes_y_axis": root.language["graph_microbes_y_axis"], "antimicrobial_y_axis": root.language["graph_antimicrobial_y_axis"]}
+        on_graph_labels: self.update_labels(self.graph_labels)
+
+        BoxLayout:
+            id: graphs_box
+            orientation: "vertical"
+
+            BoxLayout:
+                id: microbes_graph_id
+            BoxLayout
+                id: antimicrobial_graph_id
+
+        BoxLayout:
+            orientation: 'horizontal'
+            padding: dp(0), dp(5), dp(0), dp(0)
+            size_hint_y: 0.14
+
+            Widget:
+                size_hint_x: 0.3
+
+            BoxLayout:
+                orientation: 'vertical'
+
+                # Speed Slider
+                BoxLayout:
+                    id: simulation_speed_box
+                    size_hint_y: 0.7
+
+                    OptionText:
+                        id: speed_slider_text
+                        size_hint_x: None
+                        width: dp(75) if simulation_speed_box.size[0] < dp(500) else dp(110)
+                        disabled: False
+                        halign: "center"
+                        valign: "middle"
+                        text: root.language["speed_slider_text_short"] if simulation_speed_box.size[0] < 500 else root.language["speed_slider_text"]
+
+                    SmallerSlider:
+                        id: simulation_speed_slider
+                        size_hint_x: simulation_speed_box.size[0] * 0.8
+                        disabled: False
+                        min: -20  # negative values to make speed increase from left to right
+                        max: -1
+                        value: -5
+                        step: 0.1
+                        on_value: app.simulation_speed = 1/(24.0*abs(self.value))
+
+                #########
+                # Buttons
+                #########
+
+                BoxLayout:
+                    Button:
+                        id: restart_button
+                        size_hint_x: 0.25
+                        text: root.language["restart_button"]
+                        disabled: True
+                        on_release: app.restart_simulation(graphs_layout, start_button, restart_button, pause_button)
+                    Button:
+                        id: pause_button
+                        size_hint_x: 0.25
+                        text: root.language["pause_button"] if (not self.pause_value) else root.language["continue_button"]
+                        disabled: True
+                        pause_value: False
+                        was_pressed: False
+                        on_pause_value: app.pause_simulation(graphs_layout, self)
+                        on_release: self.was_pressed, self.pause_value = True, not self.pause_value
+                    Button:
+                        id: start_button
+                        sliders_toggles_enabled: True
+
+                        size_hint_x: 0.25
+                        text: root.language["start_button"]
+                        disabled: False
+                        on_release: app.start_simulation(graphs_layout, self, restart_button, pause_button, popup_warning, root)
+
+            Widget:
+                size_hint_x: 0.3

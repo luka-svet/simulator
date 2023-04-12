@@ -1,0 +1,31 @@
+#:kivy 2.2.0
+
+#:include bin/ui/dynamic_classes.kv
+#:import LANGUAGE bin.global_variables.LANGUAGE
+
+BoxLayout:
+    id: treatment_user_layout
+    orientation: 'vertical'
+
+    language: LANGUAGE
+
+    active_value: False
+    on_active_value: antimicrobial_switch.active = args[1]
+
+    # User antimicrobial
+    BoxLayout:
+        size_hint_y: None
+        height: dp(20)
+
+        OptionText:
+            id: treatment_user_supp
+            text: root.language["treatment_user_supp"]
+
+    BoxLayout:
+        size_hint_y: None
+        height: dp(25)
+
+        SmallerSwitch:
+            id: antimicrobial_switch
+            active: root.active_value
+            on_active: app.user_administer, root.active_value = args[1], args[1]
